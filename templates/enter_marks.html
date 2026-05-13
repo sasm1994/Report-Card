@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Marks – {{ class_sheet }}{% endblock %}
+
+{% block nav_extra %}
+  <a href="{{ url_for('class_view', class_sheet=class_sheet) }}">📝 {{ class_sheet }}</a>
+  <a href="{{ url_for('generate_pdfs', class_sheet=class_sheet) }}"
+     class="btn btn-green" style="font-size:11px; padding:3px 10px;">
+    🖨️ Generate PDFs
+  </a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  table#marksTable {
+    border-collapse: collapse;
+    width: 65%;
+    margin-top: 20px;
+  }
+  table#marksTable th {
+    background-color: #f5cba7;
+    color: #7b241c;
+    padding: 7px 12px;
+    border: 1px solid #c0392b;
+    text-align: center;
+  }
+  table#marksTable td {
+    border: 1px solid #c0392b;
+    padding: 5px 8px;
+    text-align: center;
+  }
+  .subj-cell {
+    text-align: left !important;
+    font-weight: bold;
+    background-color: #fdf2e9;
+    padding-left: 12px !important;
+  }
+  .total-cell {
+    font-weight: bold;
+    background-color: #d5f5e3;
+    color: #1e8449;
+  }
+  input[type=number] {
+    width: 70px;
+    padding: 4px;
+    border: 1px solid #c0392b;
+    border-radius: 3px;
+    text-align: center;
+    font-size: 13px;
+  }
+  input[type=number]:focus {
+    outline: none;
+    border-color: #7b241c;
+    background-color: #fef9f0;
+  }
+  select#studentSelect {
+    margin-left: 10px;
+    padding: 6px 12px;
+    font-size: 13px;
+    border: 1px solid #c0392b;
+    border-radius: 4px;
+    background-color: #fff;
+    color: #000;
+    min-width: 250px;
+  }
+  #saveStatus {
+    margin-left: 15px;
+    color: #1e8449;
+    font-weight: bold;
+    font-size: 13px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-title">{{ class_sheet }} – Enter Student Marks</div>
+
+<!-- Student Selector -->
+<div style="margin-bottom: 10px;">
+  <label style="font-weight:bold; color:#7b241c;">Select Student:</label>
+  <select id="studentSelect">
+    <option value="">-- Select Student --</option>
+    {% for s in students %}
+      <option value="{{ s.Roll_No }}">{{ s.Roll_No }} – {{ s.Name }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<!-- Marks Table (hidden until student selected) -->
+<table id="marksTable" style="display:none;">
+  <thead>
+    <tr>
+      <th style="width:30%; text-align:left; padding-left:12px;">Subject</th>
+      <th>Sem 1</th>
+      <th>Sem 2</th>
+      <th>Total</th>
+    </tr>
+  </thead>
+  <tbody id="marksBody"></tbody>
+</table>
+
+<!-- Save Button (hidden until student selected) -->
+<div id="saveBtnDiv" style="margin-top:15px; display:none;">
+  <button id="saveBtn" class="btn">💾 Save Marks</button>
+  <span id="saveStatus"></span>
+</div>
+
+<!-- Action Buttons -->
+<div style="margin-top:30px; display:flex; gap:15px; flex-wrap:wrap;">
+  <a href="{{ url_for('generate_pdfs', class_sheet=class_sheet) }}" class="btn btn-green">
+    🖨️ Generate All Report Cards (PDF)
+  </a>
+  <a href="{{ url_for('list_pdfs', class_sheet=class_sheet) }}"
+     class="btn" style="background:#1a5276;">
+    📥 View Generated PDFs
+  </a>
+  <a href="{{ url_for('home') }}"
+     class="btn" style="background:#555;">
+    ← Back to Classes
+  </a>
+</div>
+
+<script>
+  const studentSelect = document.getElementById("studentSelect");
+  const marksTable    = document.getElementById("marksTable");
+  const marksBody     = document.getElementById("marksBody");
+  const saveBtnDiv    = document.getElementById("saveBtnDiv");
+  const saveBtn       = document.getElementById("saveBtn");
+  const saveStatus    = document.getElementById("saveStatus");
+  const classSheet    = "{{ class_sheet }}";
+
+  let currentRoll = null;
+  let currentData = [];
+
+  // ── When student is selected from dropdown ──
+  studentSelect.addEventListener("change", () => {
+    const roll = studentSelect.value;
+    if (!roll) {
+      marksTable.style.display = "none";
+      saveBtnDiv.style.display = "none";
+      return;
+    }
+    currentRoll = roll;
+    saveStatus.textContent = "";
+
+    // Fetch existing marks for this student
+    fetch(`/api/class/${classSheet}/student/${roll}/marks`)
+      .then(r => r.json())
+      .then(data => {
+        currentData = data;
+        marksBody.innerHTML = "";
+
+        data.forEach(item => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="subj-cell">${item.subject}</td>
+            <td>
+              <input type="number" class="s1"
+                value="${item.sem1 !== "" ? item.sem1 : ""}"
+                min="0" placeholder="0">
+            </td>
+            <td>
+              <input type="number" class="s2"
+                value="${item.sem2 !== "" ? item.sem2 : ""}"
+                min="0" placeholder="0">
+            </td>
+            <td class="total-cell" id="total_${item.subject}">
+              ${item.total !== "" ? item.total : 0}
+            </td>
+          `;
+          marksBody.appendChild(tr);
+        });
+
+        marksTable.style.display = "";
+        saveBtnDiv.style.display = "";
+        attachRecalc();
+      })
+      .catch(err => {
+        alert("Error loading marks. Check console.");
+        console.error(err);
+      });
+  });
+
+  // ── Auto-calculate total when marks are typed ──
+  function attachRecalc() {
+    marksBody.querySelectorAll("tr").forEach((tr, idx) => {
+      const s1        = tr.querySelector(".s1");
+      const s2        = tr.querySelector(".s2");
+      const totalCell = tr.querySelector(".total-cell");
+      const recalc = () => {
+        const v1 = parseFloat(s1.value) || 0;
+        const v2 = parseFloat(s2.value) || 0;
+        totalCell.textContent = v1 + v2;
+      };
+      s1.addEventListener("input", recalc);
+      s2.addEventListener("input", recalc);
+    });
+  }
+
+  // ── Save marks to Excel via API ──
+  saveBtn.addEventListener("click", () => {
+    const rows = Array.from(marksBody.querySelectorAll("tr"));
+    const payload = rows.map((tr, idx) => ({
+      subject : currentData[idx].subject,
+      sem1    : parseFloat(tr.querySelector(".s1").value) || 0,
+      sem2    : parseFloat(tr.querySelector(".s2").value) || 0,
+    }));
+
+    fetch(`/api/class/${classSheet}/student/${currentRoll}/marks`, {
+      method  : "POST",
+      headers : { "Content-Type": "application/json" },
+      body    : JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(() => {
+      saveStatus.textContent = "✔ Marks saved successfully!";
+      setTimeout(() => saveStatus.textContent = "", 4000);
+    })
+    .catch(err => {
+      saveStatus.style.color = "red";
+      saveStatus.textContent = "✘ Error saving. Try again.";
+      console.error(err);
+    });
+  });
+</script>
+
+{% endblock %}

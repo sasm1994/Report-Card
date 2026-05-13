@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Select Class – Report Card System{% endblock %}
+
+{% block content %}
+<div class="page-title">Select a Class to Enter Marks</div>
+
+<ul style="list-style:none; padding:0;">
+  {% for cls in classes %}
+    <li style="margin: 10px 0;">
+      <a href="{{ url_for('class_view', class_sheet=cls) }}" class="btn">
+        📋 {{ cls }}
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+{% endblock %}

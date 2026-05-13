@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Report Card System{% endblock %}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #fef9f0;
+      font-size: 13px;
+    }
+
+    /* ── TOP HEADER BAR ── */
+    .site-header {
+      background-color: #c0392b;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .site-header img {
+      height: 60px;
+      width: auto;
+    }
+    .site-header .school-text {
+      text-align: center;
+      flex: 1;
+    }
+    .site-header h1 {
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      color: white;
+      margin-bottom: 3px;
+    }
+    .site-header h2 {
+      font-size: 11px;
+      font-weight: normal;
+      color: #f5cba7;
+      margin-bottom: 2px;
+    }
+    .site-header p {
+      font-size: 10px;
+      color: #f5cba7;
+    }
+
+    /* ── NAV BAR ── */
+    .navbar {
+      background-color: #7b241c;
+      padding: 6px 20px;
+      display: flex;
+      gap: 15px;
+    }
+    .navbar a {
+      color: #f5cba7;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 3px;
+    }
+    .navbar a:hover {
+      background-color: #c0392b;
+      color: white;
+    }
+
+    /* ── PAGE CONTENT ── */
+    .page-content {
+      padding: 25px 30px;
+    }
+
+    /* ── PAGE TITLE ── */
+    .page-title {
+      color: #c0392b;
+      font-size: 16px;
+      font-weight: bold;
+      border-left: 4px solid #c0392b;
+      padding-left: 10px;
+      margin-bottom: 20px;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-block;
+      background-color: #c0392b;
+      color: white;
+      padding: 8px 18px;
+      text-decoration: none;
+      border-radius: 4px;
+      font-size: 13px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn:hover { background-color: #a93226; }
+    .btn-green {
+      background-color: #1e8449;
+    }
+    .btn-green:hover { background-color: #196f3d; }
+
+    /* ── FOOTER ── */
+    .site-footer {
+      background-color: #7b241c;
+      color: #f5cba7;
+      text-align: center;
+      padding: 8px;
+      font-size: 10px;
+      margin-top: 40px;
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <!-- School Header -->
+  <div class="site-header">
+    <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="School Logo">
+    <div class="school-text">
+      <h1>SATYABHAMA ENGLISH MEDIUM SCHOOL</h1>
+      <h2>A Unit of Satyabhama Educational Trust</h2>
+      <p>Baliapanda, Sipasarubali, Puri &nbsp;|&nbsp; satyabhamaenglishmediumschool@gmail.com &nbsp;|&nbsp; 9040131515</p>
+    </div>
+    <!-- Spacer to balance logo on right -->
+    <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="" style="opacity:0;">
+  </div>
+
+  <!-- Navigation Bar -->
+  <div class="navbar">
+    <a href="{{ url_for('home') }}">🏠 Home</a>
+    {% block nav_extra %}{% endblock %}
+  </div>
+
+  <!-- Page Content -->
+  <div class="page-content">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Footer -->
+  <div class="site-footer">
+    &copy; 2025-26 Satyabhama English Medium School &nbsp;|&nbsp; Report Card Management System
+  </div>
+
+</body>
+</html>
+

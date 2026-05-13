@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Report Card - {{ student["Name"] }}</title>
+<style>
+
+  /* ── PAGE ── */
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 10.5px;
+    color: #000;
+    background: #fff;
+  }
+
+  .container {
+    width: 100%;
+    border: 2px solid #c0392b;
+    padding: 0;
+  }
+
+  /* ── SCHOOL HEADER ── */
+  .school-header {
+    background-color: #c0392b;   /* deep saffron-red like your PDF */
+    color: #ffffff;
+    padding: 6px 8px;
+    text-align: center;
+  }
+  .school-header table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .school-header td {
+    vertical-align: middle;
+    color: #ffffff;
+  }
+  .school-header .logo-cell {
+    width: 75px;
+    text-align: center;
+  }
+  .school-header .logo-cell img {
+    height: 65px;
+    width: auto;
+  }
+  .school-header .name-cell {
+    text-align: center;
+  }
+  .school-header h1 {
+    font-size: 17px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+    color: #ffffff;
+  }
+  .school-header h2 {
+    font-size: 10.5px;
+    font-weight: normal;
+    margin-bottom: 2px;
+    color: #ffffff;
+  }
+  .school-header p {
+    font-size: 9.5px;
+    color: #ffffff;
+  }
+
+  /* ── SEMESTER STRIP ── */
+  .semester-strip {
+    background-color: #f5cba7;   /* light peach/cream matching your PDF strip */
+    text-align: center;
+    font-weight: bold;
+    font-size: 11px;
+    padding: 3px 5px;
+    border-bottom: 1px solid #c0392b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── STUDENT INFO ── */
+  .student-info {
+    background-color: #fef9f0;   /* very light cream */
+    padding: 5px 8px;
+    border-bottom: 1px solid #c0392b;
+  }
+  .student-info table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .student-info td {
+    padding: 2px 4px;
+    font-size: 10.5px;
+    vertical-align: top;
+  }
+  .student-info .label {
+    font-weight: bold;
+    color: #7b241c;
+    width: 18%;
+    white-space: nowrap;
+  }
+  .student-info .value {
+    width: 32%;
+  }
+
+  /* ── SECTION TITLE STRIPS ── */
+  .section-title {
+    background-color: #c0392b;   /* same deep red as header */
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 10.5px;
+    padding: 3px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 0;
+  }
+
+  /* ── MARKS TABLE ── */
+  .marks-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10.5px;
+  }
+  .marks-table th {
+    background-color: #f5cba7;   /* light peach - matches your header rows */
+    color: #7b241c;              /* dark red text in headers */
+    border: 1px solid #c0392b;
+    padding: 3px 4px;
+    text-align: center;
+    font-weight: bold;
+  }
+  .marks-table td {
+    border: 1px solid #c0392b;
+    padding: 3px 4px;
+    text-align: center;
+  }
+  .marks-table td.subj {
+    text-align: left;
+    font-weight: bold;
+    background-color: #fdf2e9;   /* very light orange tint for subject names */
+    padding-left: 6px;
+  }
+  /* Alternating row colours */
+  .marks-table tbody tr:nth-child(odd) td:not(.subj) {
+    background-color: #ffffff;
+  }
+  .marks-table tbody tr:nth-child(even) td:not(.subj) {
+    background-color: #fef9f0;   /* very light cream alternate */
+  }
+  /* Total / Percentage rows */
+  .summary-row td {
+    background-color: #d5f5e3 !important;  /* light green for totals */
+    font-weight: bold;
+    color: #1e8449;
+  }
+
+  /* ── COMPUTER TABLE ── */
+  .computer-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10.5px;
+  }
+  .computer-table th {
+    background-color: #f5cba7;
+    color: #7b241c;
+    border: 1px solid #c0392b;
+    padding: 3px 4px;
+    text-align: center;
+    font-weight: bold;
+  }
+  .computer-table td {
+    border: 1px solid #c0392b;
+    padding: 3px 4px;
+    text-align: center;
+  }
+  .computer-table td.subj {
+    text-align: left;
+    font-weight: bold;
+    background-color: #fdf2e9;
+    padding-left: 6px;
+  }
+
+  /* ── BOTTOM THREE COLUMNS ── */
+  .bottom-section {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0;
+  }
+  .bottom-section > tbody > tr > td {
+    vertical-align: top;
+    padding: 0;
+    border-top: 1px solid #c0392b;
+  }
+  .bottom-section .inner-pad {
+    padding: 4px 6px;
+  }
+
+  /* Co-scholastic table */
+  .coscholastic-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+  }
+  .coscholastic-table th {
+    background-color: #f5cba7;
+    color: #7b241c;
+    border: 1px solid #c0392b;
+    padding: 2px 3px;
+    text-align: center;
+    font-weight: bold;
+  }
+  .coscholastic-table td {
+    border: 1px solid #c0392b;
+    padding: 2px 3px;
+    text-align: center;
+    font-size: 10px;
+  }
+  .coscholastic-table td.left {
+    text-align: left;
+    background-color: #fdf2e9;
+    font-weight: bold;
+    padding-left: 4px;
+  }
+
+  /* Grading scale tables */
+  .grade-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5px;
+  }
+  .grade-table th {
+    background-color: #f5cba7;
+    color: #7b241c;
+    border: 1px solid #c0392b;
+    padding: 2px 3px;
+    text-align: center;
+    font-weight: bold;
+  }
+  .grade-table td {
+    border: 1px solid #c0392b;
+    padding: 2px 3px;
+    text-align: center;
+  }
+  .grade-table tr:nth-child(odd) td {
+    background-color: #ffffff;
+  }
+  .grade-table tr:nth-child(even) td {
+    background-color: #fef9f0;
+  }
+
+  /* Attendance box */
+  .attendance-box {
+    font-size: 10px;
+    margin-top: 5px;
+  }
+  .attendance-box table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .attendance-box td {
+    padding: 2px 3px;
+    border: 1px solid #c0392b;
+    font-size: 10px;
+  }
+  .attendance-box td.label {
+    font-weight: bold;
+    background-color: #f5cba7;
+    color: #7b241c;
+    width: 65%;
+  }
+
+  /* Sub-section title strips (inside bottom section) */
+  .sub-title {
+    background-color: #f5cba7;
+    color: #7b241c;
+    font-weight: bold;
+    font-size: 10px;
+    padding: 2px 4px;
+    border-bottom: 1px solid #c0392b;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .sub-note {
+    font-size: 9px;
+    color: #555;
+    margin: 2px 0 3px 0;
+    font-style: italic;
+  }
+
+  /* ── SIGNATURES ── */
+  .signatures {
+    background-color: #fef9f0;
+    border-top: 1px solid #c0392b;
+    padding: 5px 10px 8px 10px;
+  }
+  .signatures table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .signatures td {
+    text-align: center;
+    padding-top: 22px;
+    font-size: 10.5px;
+    font-weight: bold;
+    color: #7b241c;
+    width: 50%;
+  }
+  .sig-line {
+    border-top: 1px solid #7b241c;
+    width: 65%;
+    margin: 0 auto 3px auto;
+  }
+
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ═══ SCHOOL HEADER ═══ -->
+  <div class="school-header">
+    <table>
+      <tr>
+        <td class="logo-cell">
+          <img src="file:///{{ logo_path.replace('\\', '/') }}" alt="Logo">
+        </td>
+        <td class="name-cell">
+          <h1>SATYABHAMA ENGLISH MEDIUM SCHOOL</h1>
+          <h2>A Unit of Satyabhama Educational Trust</h2>
+          <p>Address :- Baliapanda, Sipasarubali, Puri</p>
+          <p>E-mail : satyabhamaenglishmediumschool@gmail.com &nbsp;|&nbsp; Contact No : 9040131515</p>
+        </td>
+        <td class="logo-cell"></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ═══ SEMESTER STRIP ═══ -->
+  <div class="semester-strip">
+    SEMESTER - I &nbsp;&nbsp;&nbsp; (2025 - 26)
+  </div>
+
+  <!-- ═══ STUDENT INFO ═══ -->
+  <div class="student-info">
+    <table>
+      <tr>
+        <td class="label">Class / Section / Roll</td>
+        <td class="value">: &nbsp;{{ student["Class"] }} / {{ student["Section"] }} / {{ student["Roll_No"] }}</td>
+        <td class="label">Student Name</td>
+        <td class="value">: &nbsp;{{ student["Name"] }}</td>
+      </tr>
+      <tr>
+        <td class="label">Father Name</td>
+        <td class="value">: &nbsp;{{ student["Father_Name"] }}</td>
+        <td class="label">Mother Name</td>
+        <td class="value">: &nbsp;{{ student["Mother_Name"] }}</td>
+      </tr>
+      <tr>
+        <td class="label">Date of Birth</td>
+        <td class="value">: &nbsp;{{ student["DOB"] }}</td>
+        <td class="label">Contact</td>
+        <td class="value">: &nbsp;{{ student["Contact"] }}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ═══ SCHOLASTIC AREAS ═══ -->
+  <div class="section-title">Scholastic Areas</div>
+  <table class="marks-table">
+    <thead>
+      <tr>
+        <th rowspan="2" style="width:22%;">SUBJECT</th>
+        <th colspan="4">MARKS OBTAINED</th>
+        <th rowspan="2">TOTAL<br>(100)</th>
+        <th rowspan="2">GRADE</th>
+      </tr>
+      <tr>
+        <th>B/C<br>(5)</th>
+        <th>PROJECT<br>(5)</th>
+        <th>SEM I<br>(80)</th>
+        <th>PT<br>(10)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="subj">ENGLISH</td>
+        <td>{{ student["Eng_BC"] }}</td>
+        <td>{{ student["Eng_Project"] }}</td>
+        <td>{{ student["Eng_Sem"] }}</td>
+        <td>{{ student["Eng_PT"] }}</td>
+        <td>{{ student["Eng_Total"] }}</td>
+        <td>{{ student["Eng_Grade"] }}</td>
+      </tr>
+      <tr>
+        <td class="subj">MATHEMATICS</td>
+        <td>{{ student["Math_BC"] }}</td>
+        <td>{{ student["Math_Project"] }}</td>
+        <td>{{ student["Math_Sem"] }}</td>
+        <td>{{ student["Math_PT"] }}</td>
+        <td>{{ student["Math_Total"] }}</td>
+        <td>{{ student["Math_Grade"] }}</td>
+      </tr>
+      <tr>
+        <td class="subj">EVS</td>
+        <td>{{ student["EVS_BC"] }}</td>
+        <td>{{ student["EVS_Project"] }}</td>
+        <td>{{ student["EVS_Sem"] }}</td>
+        <td>{{ student["EVS_PT"] }}</td>
+        <td>{{ student["EVS_Total"] }}</td>
+        <td>{{ student["EVS_Grade"] }}</td>
+      </tr>
+      <tr>
+        <td class="subj">HINDI</td>
+        <td>{{ student["Hindi_BC"] }}</td>
+        <td>{{ student["Hindi_Project"] }}</td>
+        <td>{{ student["Hindi_Sem"] }}</td>
+        <td>{{ student["Hindi_PT"] }}</td>
+        <td>{{ student["Hindi_Total"] }}</td>
+        <td>{{ student["Hindi_Grade"] }}</td>
+      </tr>
+      <tr>
+        <td class="subj">ODIA</td>
+        <td>{{ student["Odia_BC"] }}</td>
+        <td>{{ student["Odia_Project"] }}</td>
+        <td>{{ student["Odia_Sem"] }}</td>
+        <td>{{ student["Odia_PT"] }}</td>
+        <td>{{ student["Odia_Total"] }}</td>
+        <td>{{ student["Odia_Grade"] }}</td>
+      </tr>
+      <tr class="summary-row">
+        <td class="subj" style="color:#1e8449;">Total :</td>
+        <td colspan="4"></td>
+        <td>{{ student["Grand_Total"] }}</td>
+        <td></td>
+      </tr>
+      <tr class="summary-row">
+        <td class="subj" style="color:#1e8449;">Percentage :</td>
+        <td colspan="6">{{ student["Percentage"] }} %</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ═══ COMPUTER ═══ -->
+  <div class="section-title" style="margin-top:4px;">Computer</div>
+  <table class="computer-table">
+    <thead>
+      <tr>
+        <th style="width:22%; text-align:left; padding-left:6px;">Subject Name</th>
+        <th>Semester<br>(50)</th>
+        <th>Portfolio<br>(15)</th>
+        <th>Practical<br>(35)</th>
+        <th>Obtained<br>(100)</th>
+        <th>Grade</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="subj">COMPUTER</td>
+        <td>{{ student["Comp_Sem"] }}</td>
+        <td>{{ student["Comp_Portfolio"] }}</td>
+        <td>{{ student["Comp_Practical"] }}</td>
+        <td>{{ student["Comp_Total"] }}</td>
+        <td>{{ student["Comp_Grade"] }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ═══ BOTTOM THREE-COLUMN SECTION ═══ -->
+  <table class="bottom-section">
+    <tr>
+
+      <!-- Column 1: Co-Scholastic Area -->
+      <td style="width:30%; border-right:1px solid #c0392b;">
+        <div class="inner-pad">
+          <div class="sub-title">Co-Scholastic Area</div>
+          <table class="coscholastic-table">
+            <thead>
+              <tr>
+                <th>Skill Name</th>
+                <th>Grade</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="left">WORK EDUCATION</td>
+                <td>{{ student["WorkEd_Grade"] }}</td>
+              </tr>
+              <tr>
+                <td class="left">ART EDUCATION</td>
+                <td>{{ student["ArtEd_Grade"] }}</td>
+              </tr>
+              <tr>
+                <td class="left">HEALTH &amp; PHYSICAL EDUCATION</td>
+                <td>{{ student["HealthPE_Grade"] }}</td>
+              </tr>
+              <tr>
+                <td class="left">DISCIPLINE</td>
+                <td>{{ student["Discipline_Grade"] }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </td>
+
+      <!-- Column 2: Grading Scale Scholastic -->
+      <td style="width:35%; border-right:1px solid #c0392b;">
+        <div class="inner-pad">
+          <div class="sub-title">Grading Scale for Scholastic Areas</div>
+          <p class="sub-note">Grades are awarded on a 8 point grading scale as follows</p>
+          <table class="grade-table">
+            <thead>
+              <tr>
+                <th>Marks Range</th>
+                <th>Grade</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>91 - 100</td><td>A1</td><td>Outstanding</td></tr>
+              <tr><td>81 - 90</td><td>A2</td><td>Outstanding</td></tr>
+              <tr><td>71 - 80</td><td>B1</td><td>Very Good</td></tr>
+              <tr><td>61 - 70</td><td>B2</td><td>Very Good</td></tr>
+              <tr><td>51 - 60</td><td>C1</td><td>Fair</td></tr>
+              <tr><td>41 - 50</td><td>C2</td><td>Fair</td></tr>
+              <tr><td>33 - 40</td><td>D</td><td>Needs Improvement</td></tr>
+              <tr><td>32 &amp; below</td><td>E</td><td>Needs Improvement</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </td>
+
+      <!-- Column 3: Co-Scholastic Scale + Attendance + Date -->
+      <td style="width:35%;">
+        <div class="inner-pad">
+          <div class="sub-title">Grading Scale for Co-Scholastic Areas</div>
+          <p class="sub-note">Grades are awarded on a 3 point grading scale</p>
+          <table class="grade-table">
+            <thead>
+              <tr>
+                <th>Grade</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>A</td><td>Outstanding</td></tr>
+              <tr><td>B</td><td>Very Good</td></tr>
+              <tr><td>C</td><td>Fair</td></tr>
+            </tbody>
+          </table>
+
+          <!-- Attendance -->
+          <div class="sub-title" style="margin-top:6px;">Attendance – Semester I</div>
+          <div class="attendance-box">
+            <table>
+              <tr>
+                <td class="label">No. of Days Present / Working Days</td>
+                <td>{{ student["Days_Present"] }} / {{ student["Days_Working"] }}</td>
+              </tr>
+              <tr>
+                <td class="label">Attendance Percentage</td>
+                <td>{{ student["Attendance_Percentage"] }} %</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Date -->
+          <p style="margin-top:8px; font-size:10px;">
+            <strong>Date :</strong> ___________________
+          </p>
+        </div>
+      </td>
+
+    </tr>
+  </table>
+
+  <!-- ═══ SIGNATURES ═══ -->
+  <div class="signatures">
+    <table>
+      <tr>
+        <td>
+          <div class="sig-line"></div>
+          Signature of Class Teacher
+        </td>
+        <td>
+          <div class="sig-line"></div>
+          Signature of Principal
+        </td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

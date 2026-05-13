@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% block title %}Marks Entry – {{ class_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .filter-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .filter-group { display: flex; flex-direction: column; }
+  .filter-group label {
+    font-weight: bold;
+    font-size: 12px;
+    color: #7b241c;
+    margin-bottom: 4px;
+  }
+  .filter-group select {
+    padding: 6px 10px;
+    border: 1px solid #c0392b;
+    border-radius: 4px;
+    background: white;
+    min-width: 130px;
+    font-size: 13px;
+  }
+  .fetch-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 13px;
+  }
+
+  .marks-wrapper {
+    overflow-x: auto;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    margin-top: 15px;
+  }
+  #marksTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    font-size: 12px;
+  }
+  #marksTable th {
+    background: #4472C4;
+    color: white;
+    padding: 8px 6px;
+    text-align: center;
+    border: 1px solid #2e5bad;
+    white-space: nowrap;
+  }
+  #marksTable td {
+    border: 1px solid #ddd;
+    padding: 5px 4px;
+    text-align: center;
+  }
+  #marksTable td.name-cell {
+    text-align: left;
+    padding-left: 10px;
+    min-width: 160px;
+    font-weight: 500;
+  }
+  #marksTable td.roll-cell {
+    width: 55px;
+    font-weight: bold;
+    color: #c0392b;
+    background: #f7f7f7;
+  }
+
+  input.mark-input {
+    width: 60px;
+    padding: 3px 4px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    text-align: center;
+    font-size: 12px;
+  }
+  input.mark-input:focus {
+    outline: none;
+    border-color: #c0392b;
+    background: #fffaf0;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .btn-action {
+    padding: 8px 18px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 12px;
+    color: white;
+    text-decoration: none;
+  }
+  .btn-save   { background: #1e8449; }
+  .btn-export { background: #1abc9c; }
+  .btn-pdf    { background: #8e44ad; }
+
+  #statusMsg {
+    margin-top: 10px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    display: none;
+    font-size: 12px;
+  }
+  #statusMsg.success { display: block; background:#d5f5e3; color:#1e8449; }
+  #statusMsg.error   { display: block; background:#fadbd8; color:#c0392b; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-title">📝 Student Marks Entry – {{ class_name }}</div>
+
+<div class="filter-row">
+  <div class="filter-group">
+    <label>Session:</label>
+    <select id="session">
+      {% for s in sessions %}<option>{{ s }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Class:</label>
+    <select id="classSelect">
+      <option>{{ class_name }}</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Section:</label>
+    <select id="sectionSelect">
+      <option>{{ section }}</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Term:</label>
+    <select id="termSelect">
+      <option value="1">1</option>
+      <option value="2">2</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>Examination:</label>
+    <select id="examSelect">
+      <option value="PT">Periodic Test</option>
+      <option value="SEM">Semester Exam</option>
+    </select>
+  </div>
+  <button class="fetch-btn" id="fetchBtn">🔍 FETCH MARKS</button>
+</div>
+
+<div class="marks-wrapper">
+<table id="marksTable">
+  <thead>
+    <tr>
+      <th>StudentName</th>
+      <th>RollNo</th>
+      <th>ENGLISH</th>
+      <th>MATHEMATICS</th>
+      <th>SCIENCE</th>
+      <th>SOCIAL STUDIES</th>
+      <th>HINDI</th>
+      <th>ODIA</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for student in students %}
+    <tr>
+      <td class="name-cell">{{ student.StudentName }}</td>
+      <td class="roll-cell">{{ student.RollNo }}</td>
+
+      <!-- we will fill the correct field names via JS -->
+      <td><input class="mark-input subj-eng"  data-roll="{{ student.RollNo }}"></td>
+      <td><input class="mark-input subj-math" data-roll="{{ student.RollNo }}"></td>
+      <td><input class="mark-input subj-sci"  data-roll="{{ student.RollNo }}"></td>
+      <td><input class="mark-input subj-sst"  data-roll="{{ student.RollNo }}"></td>
+      <td><input class="mark-input subj-hin"  data-roll="{{ student.RollNo }}"></td>
+      <td><input class="mark-input subj-odi"  data-roll="{{ student.RollNo }}"></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<div class="action-row">
+  <button class="btn-action btn-save" id="saveBtn">💾 SAVE MARKS</button>
+  <button class="btn-action btn-export" id="exportBtn">📥 EXPORT</button>
+  <a class="btn-action btn-pdf" href="{{ url_for('generate_pdfs', class_name=class_name) }}">
+    🖨️ GENERATE PDFs
+  </a>
+</div>
+
+<div id="statusMsg"></div>
+
+<script>
+const termSelect = document.getElementById('termSelect');
+const examSelect = document.getElementById('examSelect');
+const fetchBtn   = document.getElementById('fetchBtn');
+const group      = "{{ group }}";  // should be CLASS_3_9 here
+
+// Map subject short codes to database prefixes
+const SUBJECT_PREFIX = {
+  'eng':  'ENG',
+  'math': 'MATH',
+  'sci':  'SCI',
+  'sst':  'SST',
+  'hin':  'HINDI',
+  'odi':  'ODIA'
+};
+
+// Given term (1/2) + exam (PT/SEM) + prefix (ENG, MATH, ...),
+// return the exact field name in the Excel / MarksDatabase.
+function fieldName(term, exam, prefix) {
+  term = String(term);
+  if (exam === 'PT') {
+    return prefix + '_PT' + term;       // ENG_PT1 or ENG_PT2
+  }
+  if (exam === 'SEM') {
+    return prefix + '_SEM' + term;      // ENG_SEM1 or ENG_SEM2
+  }
+  return prefix + '_PT' + term;
+}
+
+// Load marks from the already-fetched student dicts rendered in template
+// (we have all data in the 'students' Jinja context).
+const studentsData = {};
+{% for student in students %}
+studentsData["{{ student.RollNo }}"] = {{ student|tojson }};
+{% endfor %}
+
+function refreshInputs() {
+  const term = termSelect.value;
+  const exam = examSelect.value;
+
+  // for each input, compute which DB field to bind
+  document.querySelectorAll('.mark-input').forEach(input => {
+    const roll = input.dataset.roll;
+    const rowData = studentsData[roll];
+    const classes = Array.from(input.classList);
+
+    let subjKey = null;
+    if (classes.includes('subj-eng'))  subjKey = 'eng';
+    if (classes.includes('subj-math')) subjKey = 'math';
+    if (classes.includes('subj-sci'))  subjKey = 'sci';
+    if (classes.includes('subj-sst'))  subjKey = 'sst';
+    if (classes.includes('subj-hin'))  subjKey = 'hin';
+    if (classes.includes('subj-odi'))  subjKey = 'odi';
+
+    if (!subjKey) return;
+
+    const prefix   = SUBJECT_PREFIX[subjKey];
+    const dbField  = fieldName(term, exam, prefix);
+
+    // Store which DB field this input represents
+    input.dataset.key = dbField;
+
+    // Populate value from existing data if present
+    input.value = (rowData && rowData[dbField] != null) ? rowData[dbField] : "";
+  });
+}
+
+fetchBtn.addEventListener('click', refreshInputs);
+termSelect.addEventListener('change', refreshInputs);
+examSelect.addEventListener('change', refreshInputs);
+
+// initial fill
+refreshInputs();
+
+// SAVE
+document.getElementById('saveBtn').addEventListener('click', () => {
+  const payloadByRoll = {};
+
+  document.querySelectorAll('.mark-input').forEach(inp => {
+    const roll = inp.dataset.roll;
+    const key  = inp.dataset.key;
+    const val  = inp.value.trim();
+
+    if (!key) return;  // not bound yet
+
+    if (!payloadByRoll[roll]) payloadByRoll[roll] = {};
+    payloadByRoll[roll][key] = val === "" ? "" : (isNaN(val) ? val : parseFloat(val));
+  });
+
+  const rolls = Object.keys(payloadByRoll);
+  if (!rolls.length) {
+    showStatus("Nothing to save.", "error");
+    return;
+  }
+
+  let done = 0;
+  rolls.forEach(roll => {
+    fetch(`/api/marks/{{ class_name }}/${roll}`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payloadByRoll[roll])
+    })
+    .then(r => r.json())
+    .then(() => {
+      done++;
+      if (done === rolls.length) showStatus("All marks saved.", "success");
+    })
+    .catch(() => showStatus("Error while saving marks.", "error"));
+  });
+});
+
+// EXPORT
+document.getElementById('exportBtn').addEventListener('click', () => {
+  window.location.href = "{{ url_for('export_marks', class_name=class_name) }}";
+});
+
+function showStatus(msg, type) {
+  const el = document.getElementById("statusMsg");
+  el.textContent = msg;
+  el.className = type;
+  setTimeout(() => { el.className = ""; }, 4000);
+}
+</script>
+
+{% endblock %}

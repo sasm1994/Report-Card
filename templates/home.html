@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Marks Entry – Home{% endblock %}
+
+{% block content %}
+<div class="page-title">📚 Student Marks Entry System</div>
+
+{% set groups = {
+    "Pre-Primary": ["NUR_A","NUR_B","LKG_A","LKG_B","UKG_A","UKG_B"],
+    "Primary (Class 1–5)": ["Class_1_A","Class_1_B","Class_2_A","Class_2_B",
+                             "Class_3_A","Class_3_B","Class_4_A","Class_4_B",
+                             "Class_5_A","Class_5_B"],
+    "Middle (Class 6–8)":  ["Class_6_A","Class_6_B","Class_7_A","Class_7_B",
+                             "Class_8_A","Class_8_B"],
+    "Secondary (Class 9–10)": ["Class_9_A","Class_9_B","Class_10_A","Class_10_B"]
+} %}
+
+{% for group_name, group_classes in groups.items() %}
+  <div style="margin-bottom: 30px;">
+
+    <!-- Group heading strip -->
+    <div style="
+      background: #c0392b;
+      color: white;
+      font-weight: bold;
+      font-size: 13px;
+      padding: 7px 14px;
+      border-radius: 4px 4px 0 0;
+      letter-spacing: 0.5px;
+    ">{{ group_name }}</div>
+
+    <!-- Class cards -->
+    <div style="
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: #fef9f0;
+      border: 1px solid #c0392b;
+      border-top: none;
+      padding: 15px;
+      border-radius: 0 0 4px 4px;
+    ">
+      {% for cls in group_classes %}
+        {% if cls in classes %}
+          <a href="{{ url_for('marks_entry', class_name=cls) }}" style="text-decoration:none;">
+            <div style="
+              background: white;
+              border: 2px solid #c0392b;
+              border-radius: 6px;
+              padding: 12px 18px;
+              text-align: center;
+              min-width: 100px;
+              cursor: pointer;
+              transition: all 0.2s;
+            "
+            onmouseover="this.style.background='#c0392b'; this.style.color='white';"
+            onmouseout="this.style.background='white'; this.style.color='inherit';">
+              <div style="font-size: 20px;">📖</div>
+              <div style="font-weight: bold; color: inherit; font-size: 12px; margin-top: 5px;">
+                {{ cls.replace("_", " ") }}
+              </div>
+            </div>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+  </div>
+{% endfor %}
+
+{% endblock %}
