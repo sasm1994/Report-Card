@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report Card - {{ student_name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding: 20px;
+            background: #fff;
+        }
+        
+        .report-container {
+            max-width: 900px;
+            margin: 0 auto;
+            border: 3px solid #2c3e50;
+            padding: 30px;
+            background: #fff;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px double #2c3e50;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .school-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        
+        .school-address {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .report-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-top: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .academic-year {
+            font-size: 16px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .student-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #bdc3c7;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #2c3e50;
+            min-width: 140px;
+        }
+        
+        .info-value {
+            color: #34495e;
+            font-weight: 500;
+        }
+        
+        .marks-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        .marks-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .marks-table th {
+            background: #3498db;
+            color: white;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #2980b9;
+        }
+        
+        .marks-table td {
+            padding: 10px 8px;
+            text-align: center;
+            border: 1px solid #bdc3c7;
+        }
+        
+        .marks-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .marks-table tr:hover {
+            background: #e8f6ff;
+        }
+        
+        .subject-name {
+            text-align: left !important;
+            font-weight: 500;
+        }
+        
+        .summary-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        
+        .summary-item {
+            text-align: center;
+        }
+        
+        .summary-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .summary-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .grade-section {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-left: 4px solid #27ae60;
+            border-radius: 5px;
+        }
+        
+        .grade-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .grade-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .attendance-section {
+            margin-top: 25px;
+            padding: 15px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 5px;
+        }
+        
+        .remarks-section {
+            margin-top: 25px;
+            padding: 20px;
+            background: #e8f8f5;
+            border: 1px solid #1abc9c;
+            border-radius: 5px;
+        }
+        
+        .remarks-title {
+            font-weight: bold;
+            color: #16a085;
+            margin-bottom: 10px;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            text-align: center;
+            padding-top: 30px;
+            border-top: 2px solid #bdc3c7;
+        }
+        
+        .signature-block {
+            text-align: center;
+        }
+        
+        .signature-line {
+            border-top: 2px solid #2c3e50;
+            margin-top: 40px;
+            padding-top: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .print-date {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #95a5a6;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+            
+            .report-container {
+                border: none;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Header Section -->
+        <div class="header">
+            <div class="school-name">{{ school_name|default('SCHOOL NAME HERE') }}</div>
+            <div class="school-address">{{ school_address|default('School Address, City, State - PIN') }}</div>
+            <div class="report-title">PROGRESS REPORT CARD</div>
+            <div class="academic-year">Academic Year: {{ academic_year|default('2025-2026') }}</div>
+        </div>
+        
+        <!-- Student Information -->
+        <div class="student-info">
+            <div class="info-row">
+                <span class="info-label">Student Name:</span>
+                <span class="info-value">{{ student_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Class:</span>
+                <span class="info-value">{{ class_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Roll Number:</span>
+                <span class="info-value">{{ roll_number|default('N/A') }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Section:</span>
+                <span class="info-value">{{ section|default('N/A') }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Student ID:</span>
+                <span class="info-value">{{ student_id|default('N/A') }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Date of Birth:</span>
+                <span class="info-value">{{ dob|default('N/A') }}</span>
+            </div>
+        </div>
+        
+        <!-- Marks Section -->
+        <div class="marks-section">
+            <div class="section-title">ACADEMIC PERFORMANCE</div>
+            
+            <table class="marks-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Subject</th>
+                        <th style="width: 20%;">Theory</th>
+                        <th style="width: 20%;">Practical</th>
+                        <th style="width: 20%;">Total Marks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subject in subjects %}
+                    <tr>
+                        <td class="subject-name">{{ subject.name }}</td>
+                        <td>{{ subject.theory|default('N/A') }}</td>
+                        <td>{{ subject.practical|default('N/A') }}</td>
+                        <td><strong>{{ subject.total }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- Summary Box -->
+            <div class="summary-box">
+                <div class="summary-item">
+                    <div class="summary-label">Total Marks Obtained</div>
+                    <div class="summary-value">{{ total_marks }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Maximum Marks</div>
+                    <div class="summary-value">{{ max_marks }}</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">Percentage</div>
+                    <div class="summary-value">{{ percentage }}%</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Grade and Result -->
+        <div class="grade-section">
+            <div class="grade-row">
+                <span class="info-label">Overall Grade:</span>
+                <span class="info-value" style="font-size: 20px; color: #27ae60;"><strong>{{ grade }}</strong></span>
+            </div>
+            <div class="grade-row">
+                <span class="info-label">Result:</span>
+                <span class="info-value" style="font-size: 20px; color: #27ae60;"><strong>{{ result|default('PASS') }}</strong></span>
+            </div>
+            <div class="grade-row">
+                <span class="info-label">Grade Points:</span>
+                <span class="info-value"><strong>{{ grade_points|default('N/A') }}</strong></span>
+            </div>
+        </div>
+        
+        <!-- Attendance -->
+        {% if attendance %}
+        <div class="attendance-section">
+            <div class="grade-row">
+                <span class="info-label"><strong>Attendance:</strong></span>
+                <span class="info-value">{{ attendance.present }} / {{ attendance.total }} days ({{ attendance.percentage }}%)</span>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Remarks -->
+        {% if remarks %}
+        <div class="remarks-section">
+            <div class="remarks-title">TEACHER'S REMARKS:</div>
+            <p>{{ remarks }}</p>
+        </div>
+        {% endif %}
+        
+        <!-- Co-scholastic Areas (Optional) -->
+        {% if co_scholastic %}
+        <div class="marks-section" style="margin-top: 25px;">
+            <div class="section-title">CO-SCHOLASTIC AREAS</div>
+            <table class="marks-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Area</th>
+                        <th style="width: 50%;">Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for area in co_scholastic %}
+                    <tr>
+                        <td class="subject-name">{{ area.name }}</td>
+                        <td><strong>{{ area.grade }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        
+        <!-- Footer with Signatures -->
+        <div class="footer">
+            <div class="signature-block">
+                <div class="signature-line">Class Teacher</div>
+            </div>
+            <div class="signature-block">
+                <div class="signature-line">Principal</div>
+            </div>
+            <div class="signature-block">
+                <div class="signature-line">Parent's Signature</div>
+            </div>
+        </div>
+        
+        <!-- Print Date -->
+        <div class="print-date">
+            Generated on: {{ generation_date|default('N/A') }}
+        </div>
+    </div>
+</body>
+</html>
