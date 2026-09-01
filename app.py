@@ -245,7 +245,7 @@ def home():
         if os.path.exists(DATABASE_FILE):
             df = pd.read_excel(DATABASE_FILE, sheet_name='Students')
             classes = df['Class'].astype(str).unique().tolist()
-            print("\n\n\n\n\n\n",classes)
+            #print("\n\n\n\n\n\n",classes)
         else:
             classes = []
     except Exception as e:
@@ -274,7 +274,8 @@ def enter_marks(class_name):
         if os.path.exists(DATABASE_FILE):
             df = pd.read_excel(DATABASE_FILE, sheet_name='Students')
             students = df[df['Class'].astype(str).str.upper() == class_name.upper()]
-            student_list = students[['student_name', 'roll_number', 'section']].to_dict('records')
+            #print(students)
+            student_list = students[['Student_Name', 'Roll_No', 'Section']].to_dict('records')
         else:
             student_list = []
         return render_template('enter_marks.html', class_name=class_name, students=student_list)

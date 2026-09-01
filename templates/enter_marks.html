@@ -1,228 +1,197 @@
 {% extends "base.html" %}
 
-{% block title %}Enter Marks – {{ class_sheet }}{% endblock %}
-
-{% block nav_extra %}
-  <a href="{{ url_for('class_view', class_sheet=class_sheet) }}">📝 {{ class_sheet }}</a>
-  <a href="{{ url_for('generate_pdfs', class_sheet=class_sheet) }}"
-     class="btn btn-green" style="font-size:11px; padding:3px 10px;">
-    🖨️ Generate PDFs
-  </a>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-  table#marksTable {
-    border-collapse: collapse;
-    width: 65%;
-    margin-top: 20px;
-  }
-  table#marksTable th {
-    background-color: #f5cba7;
-    color: #7b241c;
-    padding: 7px 12px;
-    border: 1px solid #c0392b;
-    text-align: center;
-  }
-  table#marksTable td {
-    border: 1px solid #c0392b;
-    padding: 5px 8px;
-    text-align: center;
-  }
-  .subj-cell {
-    text-align: left !important;
-    font-weight: bold;
-    background-color: #fdf2e9;
-    padding-left: 12px !important;
-  }
-  .total-cell {
-    font-weight: bold;
-    background-color: #d5f5e3;
-    color: #1e8449;
-  }
-  input[type=number] {
-    width: 70px;
-    padding: 4px;
-    border: 1px solid #c0392b;
-    border-radius: 3px;
-    text-align: center;
-    font-size: 13px;
-  }
-  input[type=number]:focus {
-    outline: none;
-    border-color: #7b241c;
-    background-color: #fef9f0;
-  }
-  select#studentSelect {
-    margin-left: 10px;
-    padding: 6px 12px;
-    font-size: 13px;
-    border: 1px solid #c0392b;
-    border-radius: 4px;
-    background-color: #fff;
-    color: #000;
-    min-width: 250px;
-  }
-  #saveStatus {
-    margin-left: 15px;
-    color: #1e8449;
-    font-weight: bold;
-    font-size: 13px;
-  }
-</style>
-{% endblock %}
+{% block title %}Enter Marks – Class {{ class_name }}{% endblock %}
 
 {% block content %}
 
-<div class="page-title">{{ class_sheet }} – Enter Student Marks</div>
-
-<!-- Student Selector -->
-<div style="margin-bottom: 10px;">
-  <label style="font-weight:bold; color:#7b241c;">Select Student:</label>
-  <select id="studentSelect">
-    <option value="">-- Select Student --</option>
-    {% for s in students %}
-      <option value="{{ s.Roll_No }}">{{ s.Roll_No }} – {{ s.Name }}</option>
-    {% endfor %}
-  </select>
-</div>
-
-<!-- Marks Table (hidden until student selected) -->
-<table id="marksTable" style="display:none;">
-  <thead>
-    <tr>
-      <th style="width:30%; text-align:left; padding-left:12px;">Subject</th>
-      <th>Sem 1</th>
-      <th>Sem 2</th>
-      <th>Total</th>
-    </tr>
-  </thead>
-  <tbody id="marksBody"></tbody>
-</table>
-
-<!-- Save Button (hidden until student selected) -->
-<div id="saveBtnDiv" style="margin-top:15px; display:none;">
-  <button id="saveBtn" class="btn">💾 Save Marks</button>
-  <span id="saveStatus"></span>
-</div>
-
-<!-- Action Buttons -->
-<div style="margin-top:30px; display:flex; gap:15px; flex-wrap:wrap;">
-  <a href="{{ url_for('generate_pdfs', class_sheet=class_sheet) }}" class="btn btn-green">
-    🖨️ Generate All Report Cards (PDF)
-  </a>
-  <a href="{{ url_for('list_pdfs', class_sheet=class_sheet) }}"
-     class="btn" style="background:#1a5276;">
-    📥 View Generated PDFs
-  </a>
-  <a href="{{ url_for('home') }}"
-     class="btn" style="background:#555;">
-    ← Back to Classes
-  </a>
-</div>
-
-<script>
-  const studentSelect = document.getElementById("studentSelect");
-  const marksTable    = document.getElementById("marksTable");
-  const marksBody     = document.getElementById("marksBody");
-  const saveBtnDiv    = document.getElementById("saveBtnDiv");
-  const saveBtn       = document.getElementById("saveBtn");
-  const saveStatus    = document.getElementById("saveStatus");
-  const classSheet    = "{{ class_sheet }}";
-
-  let currentRoll = null;
-  let currentData = [];
-
-  // ── When student is selected from dropdown ──
-  studentSelect.addEventListener("change", () => {
-    const roll = studentSelect.value;
-    if (!roll) {
-      marksTable.style.display = "none";
-      saveBtnDiv.style.display = "none";
-      return;
-    }
-    currentRoll = roll;
-    saveStatus.textContent = "";
-
-    // Fetch existing marks for this student
-    fetch(`/api/class/${classSheet}/student/${roll}/marks`)
-      .then(r => r.json())
-      .then(data => {
-        currentData = data;
-        marksBody.innerHTML = "";
-
-        data.forEach(item => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td class="subj-cell">${item.subject}</td>
-            <td>
-              <input type="number" class="s1"
-                value="${item.sem1 !== "" ? item.sem1 : ""}"
-                min="0" placeholder="0">
-            </td>
-            <td>
-              <input type="number" class="s2"
-                value="${item.sem2 !== "" ? item.sem2 : ""}"
-                min="0" placeholder="0">
-            </td>
-            <td class="total-cell" id="total_${item.subject}">
-              ${item.total !== "" ? item.total : 0}
-            </td>
-          `;
-          marksBody.appendChild(tr);
-        });
-
-        marksTable.style.display = "";
-        saveBtnDiv.style.display = "";
-        attachRecalc();
-      })
-      .catch(err => {
-        alert("Error loading marks. Check console.");
-        console.error(err);
-      });
-  });
-
-  // ── Auto-calculate total when marks are typed ──
-  function attachRecalc() {
-    marksBody.querySelectorAll("tr").forEach((tr, idx) => {
-      const s1        = tr.querySelector(".s1");
-      const s2        = tr.querySelector(".s2");
-      const totalCell = tr.querySelector(".total-cell");
-      const recalc = () => {
-        const v1 = parseFloat(s1.value) || 0;
-        const v2 = parseFloat(s2.value) || 0;
-        totalCell.textContent = v1 + v2;
-      };
-      s1.addEventListener("input", recalc);
-      s2.addEventListener("input", recalc);
-    });
+<style>
+  .page-heading {
+    color: #9f2f22;
+    border-left: 5px solid #c0392b;
+    padding-left: 12px;
+    margin: 8px 0 22px;
+    font-size: 22px;
   }
 
-  // ── Save marks to Excel via API ──
-  saveBtn.addEventListener("click", () => {
-    const rows = Array.from(marksBody.querySelectorAll("tr"));
-    const payload = rows.map((tr, idx) => ({
-      subject : currentData[idx].subject,
-      sem1    : parseFloat(tr.querySelector(".s1").value) || 0,
-      sem2    : parseFloat(tr.querySelector(".s2").value) || 0,
-    }));
+  .class-summary {
+    background: #fff8eb;
+    border: 1px solid #e2b6a8;
+    border-left: 5px solid #c0392b;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    color: #5e2a22;
+  }
 
-    fetch(`/api/class/${classSheet}/student/${currentRoll}/marks`, {
-      method  : "POST",
-      headers : { "Content-Type": "application/json" },
-      body    : JSON.stringify(payload)
-    })
-    .then(r => r.json())
-    .then(() => {
-      saveStatus.textContent = "✔ Marks saved successfully!";
-      setTimeout(() => saveStatus.textContent = "", 4000);
-    })
-    .catch(err => {
-      saveStatus.style.color = "red";
-      saveStatus.textContent = "✘ Error saving. Try again.";
-      console.error(err);
-    });
-  });
-</script>
+  .action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 18px 0;
+  }
+
+  .btn-action {
+    display: inline-block;
+    background: #c0392b;
+    color: #ffffff;
+    text-decoration: none;
+    border: none;
+    border-radius: 5px;
+    padding: 9px 14px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .btn-action:hover {
+    background: #922b21;
+  }
+
+  .btn-secondary {
+    background: #7b241c;
+  }
+
+  .btn-secondary:hover {
+    background: #5b1b15;
+  }
+
+  .student-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #ffffff;
+    margin-top: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  .student-table th {
+    background: #c0392b;
+    color: #ffffff;
+    text-align: left;
+    padding: 11px 12px;
+    font-size: 14px;
+  }
+
+  .student-table td {
+    border-bottom: 1px solid #ead7d1;
+    padding: 10px 12px;
+    color: #333333;
+    vertical-align: middle;
+  }
+
+  .student-table tr:nth-child(even) {
+    background: #fffaf7;
+  }
+
+  .student-table tr:hover {
+    background: #fff2ed;
+  }
+
+  .table-action {
+    display: inline-block;
+    text-decoration: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin: 2px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .preview-link {
+    background: #2874a6;
+  }
+
+  .preview-link:hover {
+    background: #1f5b83;
+  }
+
+  .pdf-link {
+    background: #1e8449;
+  }
+
+  .pdf-link:hover {
+    background: #176c3a;
+  }
+
+  .empty-message {
+    background: #fff8eb;
+    border: 1px solid #e2b6a8;
+    border-radius: 6px;
+    color: #7b241c;
+    padding: 18px;
+    text-align: center;
+    margin-top: 16px;
+  }
+</style>
+
+<h1 class="page-heading">Enter Marks – Class {{ class_name }}</h1>
+
+<div class="class-summary">
+  <strong>Selected class:</strong> {{ class_name }}
+  &nbsp; | &nbsp;
+  <strong>Students found:</strong> {{ students|length }}
+</div>
+
+<div class="action-bar">
+  <a class="btn-action btn-secondary" href="{{ url_for('home') }}">
+    ← Back to Class Selection
+  </a>
+
+  {% if students %}
+  <a class="btn-action" href="{{ url_for('generate_all_reports', class_name=class_name) }}">
+    🖨 Generate All Report Cards
+  </a>
+  {% endif %}
+</div>
+
+{% if students %}
+<table class="student-table">
+  <thead>
+    <tr>
+      <th style="width: 12%;">Roll No.</th>
+      <th>Student Name</th>
+      <th style="width: 14%;">Section</th>
+      <th style="width: 30%;">Actions</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for student in students %}
+    <tr>
+      <td>{{ student.Roll_No }}</td>
+      <td>{{ student.Student_Name }}</td>
+      <td>{{ student.Section }}</td>
+      <td>
+        <a class="table-action preview-link"
+           href="{{ url_for(
+             'preview_report',
+             class_name=class_name,
+             roll_number=student.roll_number
+           ) }}"
+           target="_blank">
+          👁 Preview
+        </a>
+
+        <a class="table-action pdf-link"
+           href="{{ url_for(
+             'generate_report',
+             class_name=class_name,
+             roll_number=student.roll_number
+           ) }}">
+          📄 Generate PDF
+        </a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% else %}
+<div class="empty-message">
+  <strong>No students were found for Class {{ class_name }}.</strong><br>
+  Check that the values in the workbook’s <code>Class</code> column match
+  the selected class exactly.
+</div>
+{% endif %}
 
 {% endblock %}

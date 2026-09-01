@@ -38,7 +38,7 @@
     ">
       {% for cls in group_classes %}
         {% if cls in classes %}
-          <a href="{{ url_for('marks_entry', class_name=cls) }}" style="text-decoration:none;">
+          <a href="{{ url_for('enter_marks', class_name=cls) }}" style="text-decoration:none;">
             <div style="
               background: white;
               border: 2px solid #c0392b;
