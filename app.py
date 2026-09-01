@@ -15,7 +15,7 @@ app.secret_key = 'your-secret-key-here'
 
 UPLOAD_FOLDER = 'student_lists'
 GENERATED_PDFS_FOLDER = 'generated_pdfs'
-DATABASE_FILE = 'marks_database.xlsx'
+DATABASE_FILE = 'student_master_database.xlsx'
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -62,10 +62,10 @@ def get_student_data_from_excel(student_identifier, identifier_type='roll_number
         if not os.path.exists(DATABASE_FILE):
             raise FileNotFoundError(f"Database file {DATABASE_FILE} not found")
 
-        df = pd.read_excel(DATABASE_FILE)
+        df = pd.read_excel(DATABASE_FILE, sheet_name='Students')
 
         if class_name:
-            df = df[df['class'].astype(str).str.upper() == class_name.upper()]
+            df = df[df['Class'].astype(str).str.upper() == class_name.upper()]
 
         if identifier_type == 'roll_number':
             student_row = df[df['roll_number'].astype(str) == str(student_identifier)]
@@ -241,15 +241,25 @@ def generate_report_card_pdf(student_data, output_dir=GENERATED_PDFS_FOLDER):
 
 @app.route('/')
 def home():
-    return render_template('home.html')
+    try:
+        if os.path.exists(DATABASE_FILE):
+            df = pd.read_excel(DATABASE_FILE, sheet_name='Students')
+            classes = df['Class'].astype(str).unique().tolist()
+            print(classes)
+        else:
+            classes = []
+    except Exception as e:
+        flash(f'Error loading classes: {str(e)}', 'error')
+        classes = []
+    return render_template('home.html', classes=classes)
 
 
 @app.route('/class_selector')
 def class_selector():
     try:
         if os.path.exists(DATABASE_FILE):
-            df = pd.read_excel(DATABASE_FILE)
-            classes = df['class'].unique().tolist()
+            df = pd.read_excel(DATABASE_FILE, sheet_name='Students')
+            classes = df['Class'].unique().tolist()
         else:
             classes = []
         return render_template('class_selector.html', classes=classes)
@@ -262,8 +272,8 @@ def class_selector():
 def enter_marks(class_name):
     try:
         if os.path.exists(DATABASE_FILE):
-            df = pd.read_excel(DATABASE_FILE)
-            students = df[df['class'].astype(str).str.upper() == class_name.upper()]
+            df = pd.read_excel(DATABASE_FILE, sheet_name='Students')
+            students = df[df['Class'].astype(str).str.upper() == class_name.upper()]
             student_list = students[['student_name', 'roll_number', 'section']].to_dict('records')
         else:
             student_list = []
@@ -318,8 +328,8 @@ def generate_all_reports(class_name):
             flash('Database file not found', 'error')
             return redirect(url_for('class_selector'))
 
-        df = pd.read_excel(DATABASE_FILE)
-        class_students = df[df['class'].astype(str).str.upper() == class_name.upper()]
+        df = pd.read_excel(DATABASE_FILE, sheet_name='Students')
+        class_students = df[df['Class'].astype(str).str.upper() == class_name.upper()]
 
         if class_students.empty:
             flash(f'No students found in class {class_name}', 'error')
@@ -427,8 +437,8 @@ def api_get_students(class_name):
     try:
         if not os.path.exists(DATABASE_FILE):
             return jsonify({'success': False, 'message': 'Database not found'}), 404
-        df = pd.read_excel(DATABASE_FILE)
-        class_students = df[df['class'].astype(str).str.upper() == class_name.upper()]
+        df = pd.read_excel(DATABASE_FILE, sheet_name='Students')
+        class_students = df[df['Class'].astype(str).str.upper() == class_name.upper()]
         students = [
             {
                 'name': row.get('student_name', 'Unknown'),

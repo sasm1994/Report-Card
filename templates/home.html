@@ -5,13 +5,10 @@
 <div class="page-title">📚 Student Marks Entry System</div>
 
 {% set groups = {
-    "Pre-Primary": ["NUR_A","NUR_B","LKG_A","LKG_B","UKG_A","UKG_B"],
-    "Primary (Class 1–5)": ["Class_1_A","Class_1_B","Class_2_A","Class_2_B",
-                             "Class_3_A","Class_3_B","Class_4_A","Class_4_B",
-                             "Class_5_A","Class_5_B"],
-    "Middle (Class 6–8)":  ["Class_6_A","Class_6_B","Class_7_A","Class_7_B",
-                             "Class_8_A","Class_8_B"],
-    "Secondary (Class 9–10)": ["Class_9_A","Class_9_B","Class_10_A","Class_10_B"]
+    "Pre-Primary": ["NUR","LKG","UKG"],
+    "Sub-Junior (Class 1–3)": ["1","2","3"],
+    "Junior (Class 4-6)":  ["4","5","6"],
+    "Secondary (Class 7–10)": ["7","8","9","10"]
 } %}
 
 {% for group_name, group_classes in groups.items() %}
