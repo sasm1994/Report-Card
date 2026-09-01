@@ -15,7 +15,7 @@ app.secret_key = 'your-secret-key-here'
 
 UPLOAD_FOLDER = 'student_lists'
 GENERATED_PDFS_FOLDER = 'generated_pdfs'
-DATABASE_FILE = 'student_master_database.xlsx'
+DATABASE_FILE = UPLOAD_FOLDER+"/"+'student_master_database.xlsx'
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -245,7 +245,7 @@ def home():
         if os.path.exists(DATABASE_FILE):
             df = pd.read_excel(DATABASE_FILE, sheet_name='Students')
             classes = df['Class'].astype(str).unique().tolist()
-            print(classes)
+            print("\n\n\n\n\n\n",classes)
         else:
             classes = []
     except Exception as e:
