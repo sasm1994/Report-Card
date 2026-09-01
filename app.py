@@ -1,14 +1,14 @@
 """
 Report Card Generation System - Flask Application
-Updated with dynamic template support for generating individual student report cards
+Uses pdfkit + wkhtmltopdf for PDF generation (replaces WeasyPrint due to
+Windows GTK/Pango/GObject dependency issues).
 """
 
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify
-from weasyprint import HTML
 import os
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify
 import pandas as pd
 from datetime import datetime
-import io
+import pdfkit
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'
@@ -23,30 +23,66 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(GENERATED_PDFS_FOLDER, exist_ok=True)
 
+WKHTMLTOPDF_PATH = os.environ.get(
+    "WKHTMLTOPDF_PATH",
+    r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
+)
+
+PDFKIT_CONFIG = None
+PDFKIT_AVAILABLE = False
+PDFKIT_ERROR_MESSAGE = None
+
+if os.path.exists(WKHTMLTOPDF_PATH):
+    try:
+        PDFKIT_CONFIG = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
+        PDFKIT_AVAILABLE = True
+    except Exception as exc:
+        PDFKIT_ERROR_MESSAGE = f"pdfkit configuration failed: {exc}"
+else:
+    PDFKIT_ERROR_MESSAGE = (
+        f"wkhtmltopdf executable not found at '{WKHTMLTOPDF_PATH}'. "
+        "Install wkhtmltopdf (https://wkhtmltopdf.org/downloads.html) or set the "
+        "WKHTMLTOPDF_PATH environment variable to its installed location."
+    )
+
+PDFKIT_OPTIONS = {
+    'page-size': 'A4',
+    'margin-top': '10mm',
+    'margin-bottom': '10mm',
+    'margin-left': '10mm',
+    'margin-right': '10mm',
+    'encoding': 'UTF-8',
+    'no-outline': None,
+    'enable-local-file-access': None,
+}
+
+
 def get_student_data_from_excel(student_identifier, identifier_type='roll_number', class_name=None):
     try:
         if not os.path.exists(DATABASE_FILE):
             raise FileNotFoundError(f"Database file {DATABASE_FILE} not found")
-        
+
         df = pd.read_excel(DATABASE_FILE)
-        
+
         if class_name:
             df = df[df['class'].astype(str).str.upper() == class_name.upper()]
-        
+
         if identifier_type == 'roll_number':
             student_row = df[df['roll_number'].astype(str) == str(student_identifier)]
         else:
             student_row = df[df['student_id'].astype(str) == str(student_identifier)]
-        
+
         if student_row.empty:
             return None
-        
+
         data = student_row.iloc[0].to_dict()
         student_data = build_student_data_structure(data, df.columns)
         return student_data
+
     except Exception as e:
         print(f"Error fetching student data: {str(e)}")
         raise
+
 
 def build_student_data_structure(data, columns):
     column_mappings = {
@@ -57,7 +93,7 @@ def build_student_data_structure(data, columns):
         'student_id': ['student_id', 'id', 'ID', 'Admission No'],
         'dob': ['dob', 'date_of_birth', 'DOB', 'Birth Date'],
     }
-    
+
     subject_mappings = {
         'Mathematics': ['maths', 'math', 'Mathematics', 'Maths_Marks', 'MATH'],
         'Science': ['science', 'Science', 'SCI', 'Science_Marks'],
@@ -70,24 +106,24 @@ def build_student_data_structure(data, columns):
         'Work Education': ['work', 'Work Education', 'WORK'],
         'Physical Education': ['physical', 'Physical Education', 'PE', 'PT'],
     }
-    
+
     def get_value(mapping_dict, key):
         for possible_name in mapping_dict[key]:
             if possible_name in columns:
                 return data.get(possible_name)
         return None
-    
+
     student_name = get_value(column_mappings, 'student_name') or 'Unknown'
     class_name_val = get_value(column_mappings, 'class') or 'N/A'
     section = get_value(column_mappings, 'section') or 'N/A'
     roll_number = get_value(column_mappings, 'roll_number') or 'N/A'
     student_id = get_value(column_mappings, 'student_id') or 'N/A'
     dob = get_value(column_mappings, 'dob') or 'N/A'
-    
+
     subjects = []
     total_marks = 0
     max_marks = 0
-    
+
     for subject_name, possible_columns in subject_mappings.items():
         for col_name in possible_columns:
             if col_name in columns:
@@ -97,15 +133,20 @@ def build_student_data_structure(data, columns):
                         marks = int(float(marks))
                         total_marks += marks
                         max_marks += 100
-                        subjects.append({'name': subject_name, 'theory': marks, 'practical': 'N/A', 'total': marks})
+                        subjects.append({
+                            'name': subject_name,
+                            'theory': marks,
+                            'practical': 'N/A',
+                            'total': marks
+                        })
                     except (ValueError, TypeError):
                         pass
                 break
-    
+
     percentage = round((total_marks / max_marks * 100), 2) if max_marks > 0 else 0
     grade = calculate_grade(percentage)
     grade_points = calculate_grade_points(percentage)
-    
+
     return {
         'student_name': student_name,
         'class_name': class_name_val,
@@ -129,40 +170,79 @@ def build_student_data_structure(data, columns):
         'generation_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
 
+
 def calculate_grade(percentage):
-    if percentage >= 90: return 'A1'
-    elif percentage >= 80: return 'A2'
-    elif percentage >= 70: return 'B1'
-    elif percentage >= 60: return 'B2'
-    elif percentage >= 50: return 'C1'
-    elif percentage >= 40: return 'C2'
-    elif percentage >= 33: return 'D'
-    else: return 'E'
+    if percentage >= 90:
+        return 'A1'
+    elif percentage >= 80:
+        return 'A2'
+    elif percentage >= 70:
+        return 'B1'
+    elif percentage >= 60:
+        return 'B2'
+    elif percentage >= 50:
+        return 'C1'
+    elif percentage >= 40:
+        return 'C2'
+    elif percentage >= 33:
+        return 'D'
+    else:
+        return 'E'
+
 
 def calculate_grade_points(percentage):
-    if percentage >= 95: return 10.0
-    elif percentage >= 90: return 9.0
-    elif percentage >= 80: return 8.0
-    elif percentage >= 70: return 7.0
-    elif percentage >= 60: return 6.0
-    elif percentage >= 50: return 5.0
-    elif percentage >= 40: return 4.0
-    elif percentage >= 33: return 3.0
-    else: return 0.0
+    if percentage >= 95:
+        return 10.0
+    elif percentage >= 90:
+        return 9.0
+    elif percentage >= 80:
+        return 8.0
+    elif percentage >= 70:
+        return 7.0
+    elif percentage >= 60:
+        return 6.0
+    elif percentage >= 50:
+        return 5.0
+    elif percentage >= 40:
+        return 4.0
+    elif percentage >= 33:
+        return 3.0
+    else:
+        return 0.0
+
 
 def generate_report_card_pdf(student_data, output_dir=GENERATED_PDFS_FOLDER):
-    html_content = render_template('report_card_dynamic.html', **student_data)
-    pdf = HTML(string=html_content).write_pdf()
+    if not PDFKIT_AVAILABLE:
+        raise RuntimeError(
+            PDFKIT_ERROR_MESSAGE or
+            "PDF generation is not available because wkhtmltopdf is not configured."
+        )
+
+    with app.app_context():
+        html_content = render_template('report_card_dynamic.html', **student_data)
+
     os.makedirs(output_dir, exist_ok=True)
+
     safe_name = student_data['student_name'].replace(' ', '_').replace('/', '_').replace('.', '_')
     pdf_filename = f"{output_dir}/report_card_{safe_name}_{student_data['roll_number']}.pdf"
-    with open(pdf_filename, 'wb') as f:
-        f.write(pdf)
+
+    pdfkit.from_string(
+        html_content,
+        pdf_filename,
+        configuration=PDFKIT_CONFIG,
+        options=PDFKIT_OPTIONS
+    )
+
+    if not os.path.exists(pdf_filename):
+        raise RuntimeError("PDF generation failed: output file was not created.")
+
     return pdf_filename
+
 
 @app.route('/')
 def home():
     return render_template('home.html')
+
 
 @app.route('/class_selector')
 def class_selector():
@@ -176,6 +256,7 @@ def class_selector():
     except Exception as e:
         flash(f'Error loading classes: {str(e)}', 'error')
         return render_template('class_selector.html', classes=[])
+
 
 @app.route('/enter_marks/<class_name>')
 def enter_marks(class_name):
@@ -191,6 +272,7 @@ def enter_marks(class_name):
         flash(f'Error loading students: {str(e)}', 'error')
         return redirect(url_for('class_selector'))
 
+
 @app.route('/save_marks', methods=['POST'])
 def save_marks():
     try:
@@ -199,31 +281,52 @@ def save_marks():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
 @app.route('/generate_report/<class_name>/<roll_number>')
 def generate_report(class_name, roll_number):
     try:
         student_data = get_student_data_from_excel(roll_number, 'roll_number', class_name)
+
         if not student_data:
             flash(f'Student with roll number {roll_number} not found in class {class_name}', 'error')
             return redirect(url_for('enter_marks', class_name=class_name))
+
         pdf_path = generate_report_card_pdf(student_data)
-        return send_file(pdf_path, as_attachment=True, download_name=f"report_card_{student_data['student_name']}_{roll_number}.pdf")
+
+        return send_file(
+            pdf_path,
+            as_attachment=True,
+            download_name=f"report_card_{student_data['student_name']}_{roll_number}.pdf"
+        )
+
+    except RuntimeError as e:
+        flash(str(e), 'error')
+        return redirect(url_for('enter_marks', class_name=class_name))
     except Exception as e:
         flash(f'Error generating report card: {str(e)}', 'error')
         return redirect(url_for('enter_marks', class_name=class_name))
 
+
 @app.route('/generate_all_reports/<class_name>')
 def generate_all_reports(class_name):
     try:
+        if not PDFKIT_AVAILABLE:
+            flash(PDFKIT_ERROR_MESSAGE, 'error')
+            return redirect(url_for('enter_marks', class_name=class_name))
+
         if not os.path.exists(DATABASE_FILE):
             flash('Database file not found', 'error')
             return redirect(url_for('class_selector'))
+
         df = pd.read_excel(DATABASE_FILE)
         class_students = df[df['class'].astype(str).str.upper() == class_name.upper()]
+
         if class_students.empty:
             flash(f'No students found in class {class_name}', 'error')
             return redirect(url_for('enter_marks', class_name=class_name))
+
         generated_files = []
+
         for index, row in class_students.iterrows():
             try:
                 student_data = get_student_data_from_excel(row['roll_number'], 'roll_number', class_name)
@@ -233,26 +336,51 @@ def generate_all_reports(class_name):
             except Exception as e:
                 print(f"Error generating report for {row.get('student_name', 'Unknown')}: {str(e)}")
                 continue
+
         if not generated_files:
             flash('No report cards generated', 'error')
             return redirect(url_for('enter_marks', class_name=class_name))
+
         files_html = "<br>".join([f"✓ {os.path.basename(f)}" for f in generated_files])
-        return f"<html><head><title>Reports Generated</title></head><body style='font-family: Arial; padding: 40px;'><h1>✓ Successfully Generated {len(generated_files)} Report Cards</h1><p>Class: {class_name}</p><p>Files saved to: {GENERATED_PDFS_FOLDER}/</p><h3>Generated Files:</h3><p>{files_html}</p><br><a href='{url_for('enter_marks', class_name=class_name)}'>← Back to Class</a> <a href='{url_for('pdf_list')}' style='margin-left: 20px;'>View All PDFs →</a></body></html>"
+
+        html_response = f"""
+        <html>
+        <head><title>Reports Generated</title></head>
+        <body style="font-family: Arial; padding: 40px;">
+            <h1>✓ Successfully Generated {len(generated_files)} Report Cards</h1>
+            <p>Class: {class_name}</p>
+            <p>Files saved to: {GENERATED_PDFS_FOLDER}/</p>
+            <h3>Generated Files:</h3>
+            <p>{files_html}</p>
+            <br>
+            <a href="{url_for('enter_marks', class_name=class_name)}">← Back to Class</a>
+            <a href="{url_for('pdf_list')}" style="margin-left: 20px;">View All PDFs →</a>
+        </body>
+        </html>
+        """
+
+        return html_response
+
     except Exception as e:
         flash(f'Error generating reports: {str(e)}', 'error')
         return redirect(url_for('enter_marks', class_name=class_name))
+
 
 @app.route('/preview_report/<class_name>/<roll_number>')
 def preview_report(class_name, roll_number):
     try:
         student_data = get_student_data_from_excel(roll_number, 'roll_number', class_name)
+
         if not student_data:
-            flash(f'Student not found', 'error')
+            flash('Student not found', 'error')
             return redirect(url_for('enter_marks', class_name=class_name))
+
         return render_template('report_card_dynamic.html', **student_data)
+
     except Exception as e:
         flash(f'Error previewing report: {str(e)}', 'error')
         return redirect(url_for('enter_marks', class_name=class_name))
+
 
 @app.route('/pdf_list')
 def pdf_list():
@@ -267,6 +395,7 @@ def pdf_list():
         flash(f'Error listing PDFs: {str(e)}', 'error')
         return render_template('pdf_list.html', pdf_files=[], folder=GENERATED_PDFS_FOLDER)
 
+
 @app.route('/download_pdf/<filename>')
 def download_pdf(filename):
     try:
@@ -280,6 +409,7 @@ def download_pdf(filename):
         flash(f'Error: {str(e)}', 'error')
         return redirect(url_for('pdf_list'))
 
+
 @app.route('/api/student/<class_name>/<roll_number>')
 def api_get_student(class_name, roll_number):
     try:
@@ -291,6 +421,7 @@ def api_get_student(class_name, roll_number):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
 @app.route('/api/students/<class_name>')
 def api_get_students(class_name):
     try:
@@ -298,17 +429,38 @@ def api_get_students(class_name):
             return jsonify({'success': False, 'message': 'Database not found'}), 404
         df = pd.read_excel(DATABASE_FILE)
         class_students = df[df['class'].astype(str).str.upper() == class_name.upper()]
-        students = [{'name': row.get('student_name', 'Unknown'), 'roll_number': str(row.get('roll_number', 'N/A')), 'section': row.get('section', 'N/A')} for index, row in class_students.iterrows()]
+        students = [
+            {
+                'name': row.get('student_name', 'Unknown'),
+                'roll_number': str(row.get('roll_number', 'N/A')),
+                'section': row.get('section', 'N/A')
+            }
+            for index, row in class_students.iterrows()
+        ]
         return jsonify({'success': True, 'data': students})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
+@app.route('/api/pdf_engine_status')
+def api_pdf_engine_status():
+    return jsonify({
+        'pdfkit_available': PDFKIT_AVAILABLE,
+        'wkhtmltopdf_path': WKHTMLTOPDF_PATH,
+        'error_message': PDFKIT_ERROR_MESSAGE
+    })
+
+
 if __name__ == '__main__':
     print("=" * 60)
-    print("Report Card Generation System")
+    print("Report Card Generation System (pdfkit / wkhtmltopdf)")
     print("=" * 60)
     print(f"Database: {DATABASE_FILE}")
     print(f"PDF Output: {GENERATED_PDFS_FOLDER}/")
+    print(f"wkhtmltopdf path: {WKHTMLTOPDF_PATH}")
+    print(f"PDF engine available: {PDFKIT_AVAILABLE}")
+    if not PDFKIT_AVAILABLE:
+        print(f"WARNING: {PDFKIT_ERROR_MESSAGE}")
     print("")
     print("Available Routes:")
     print("  / - Home page")
@@ -318,7 +470,9 @@ if __name__ == '__main__':
     print("  /generate_all_reports/<class> - Generate all reports for class")
     print("  /preview_report/<class>/<roll> - Preview report in browser")
     print("  /pdf_list - View all generated PDFs")
+    print("  /api/pdf_engine_status - Check PDF engine configuration")
     print("")
     print("Running on http://127.0.0.1:5000")
     print("=" * 60)
+
     app.run(debug=True, host='127.0.0.1', port=5000)
